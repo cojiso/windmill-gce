@@ -1,0 +1,13 @@
+{
+  "name": "windmill-gce",
+  "private": true,
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3"
+  },
+  "dependencies": {
+    "@pulumi/gcp": "10.2.2",
+    "@pulumi/pulumi": "3.274.1"
+  }
+}

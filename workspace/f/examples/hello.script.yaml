@@ -1,0 +1,12 @@
+summary: Say hello
+description: Shows how a script, its parameters and its result look in Windmill.
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    name:
+      type: string
+      description: Who to greet
+      default: world
+  required: []

@@ -1,0 +1,21 @@
+# Settings for the prod stack. Replace every __CHANGE_ME__ before the first pulumi up. Nothing here is secret, so commit this file.
+#
+#   repoUrl  Your copy of this repository. Public: the HTTPS URL (https://github.com/you/windmill-gce.git). Private: the SSH URL (git@github.com:you/windmill-gce.git), and add the VM's deploy key on GitHub.
+#   domain   Host name only, without https://
+#
+# Optional settings, set with `pulumi config set windmill-gce:<key> <value>` (see config.ts for all of them):
+#   exposure          caddy (default) or tunnel
+#   machineType       e2-small (default)
+#   bootDiskGb        10 (default)
+#   dataDiskGb        20 (default)
+#   alertEmail        no default; without it, alerts notify nobody
+#   repoBranch        main (default)
+#   snapshotRetentionDays 7, backupRetentionDays 30 (defaults)
+#
+# pulumi stack init adds the secretsprovider and encryptedkey lines.
+config:
+  gcp:project: __CHANGE_ME__
+  gcp:region: us-west1
+  gcp:zone: us-west1-b
+  windmill-gce:domain: __CHANGE_ME__
+  windmill-gce:repoUrl: __CHANGE_ME__

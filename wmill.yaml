@@ -1,0 +1,6 @@
+# This directory is not a Windmill project; workspace/ is.
+# Without this file, a wmill command run here uses the CLI's defaults: includes f/**, and the active profile on your machine, which may be another instance. Finding no local files, `wmill sync push` would then delete everything under f/ there.
+# What protects is includes and excludes: they match no file, so sync has nothing to push or delete. An empty workspaces map does not stop wmill from falling back to the active profile.
+includes: []
+excludes:
+  - "**"

@@ -1,0 +1,3 @@
+allowBuilds:
+  # protobufjs's postinstall only warns about how a dependency declares its version. pnpm 12 fails the install while this is undecided.
+  protobufjs: false

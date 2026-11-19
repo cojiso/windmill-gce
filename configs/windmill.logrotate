@@ -1,0 +1,8 @@
+# Installed as /etc/logrotate.d/windmill by setup-vm.sh. Keeps the cron logs from growing on the boot disk.
+/var/log/windmill-*.log {
+  weekly
+  rotate 8
+  compress
+  missingok
+  notifempty
+}

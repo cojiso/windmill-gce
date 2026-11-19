@@ -1,0 +1,4 @@
+# Caddy gets and renews the Let's Encrypt certificate for this name by itself. The DNS record must point at the VM first.
+{$WINDMILL_DOMAIN} {
+	reverse_proxy windmill_server:8000
+}

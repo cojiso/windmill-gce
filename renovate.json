@@ -1,0 +1,90 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":dependencyDashboard"
+  ],
+  "minimumReleaseAge": "5 days",
+  "internalChecksFilter": "strict",
+  "prConcurrentLimit": 3,
+  "rangeStrategy": "bump",
+  "automergeType": "pr",
+  "platformAutomerge": false,
+  "packageRules": [
+    {
+      "description": "Everything but majors merges by itself once CI passes. Windmill ships a minor almost every day, so merging by hand would drown you in PRs. platformAutomerge is off so the merge waits for CI even without a required check on the branch.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
+      ],
+      "automerge": true
+    },
+    {
+      "description": "Majors wait for approval on the Dependency Dashboard, so pending ones do not take up prConcurrentLimit and block every other update.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Windmill images. ghcr.io gives no release dates, so with a minimum release age Renovate would never see a version as old enough (minimumReleaseAgeBehaviour defaults to timestamp-required) and Windmill would never update. Look the versions up on GitHub Releases instead, which has dates; the images are still pulled from ghcr.io.",
+      "matchPackageNames": [
+        "ghcr.io/windmill-labs/**"
+      ],
+      "groupName": "windmill",
+      "overrideDatasource": "github-releases",
+      "overridePackageName": "windmill-labs/windmill",
+      "extractVersion": "^v(?<version>.+)$"
+    },
+    {
+      "description": "cloudflared versions are year.month.patch, so a new year looks like a major. It holds no state and old versions lose support, so merge those too. Versions come from GitHub Releases: Docker Hub refuses anonymous clients past 1000 tags, so Renovate gets no release dates there.",
+      "matchPackageNames": [
+        "cloudflare/cloudflared"
+      ],
+      "dependencyDashboardApproval": false,
+      "automerge": true,
+      "overrideDatasource": "github-releases",
+      "overridePackageName": "cloudflare/cloudflared"
+    },
+    {
+      "description": "Caddy versions come from GitHub Releases too, for the same Docker Hub limit once it has enough tags.",
+      "matchPackageNames": [
+        "caddy"
+      ],
+      "overrideDatasource": "github-releases",
+      "overridePackageName": "caddyserver/caddy",
+      "extractVersion": "^v(?<version>.+)$"
+    },
+    {
+      "description": "One PR for the Pulumi dependencies. They only take effect at your next pulumi up.",
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "pulumi"
+    },
+    {
+      "description": "Postgres waits for your approval on the Dependency Dashboard, minor and major alike. Docker Hub gives Renovate no release dates for it (see cloudflared), and Postgres has no GitHub releases to use instead, so the 5-day delay cannot work; you are the delay. Minor releases come a few times a year and only need a restart. A new major shows up there too, so you know it exists, but do not merge it: it needs a dump and restore by hand, and the VM refuses to start on it until that is done (configs/check-pg-major.sh).",
+      "matchPackageNames": [
+        "postgres"
+      ],
+      "dependencyDashboardApproval": true,
+      "minimumReleaseAgeBehaviour": "timestamp-optional"
+    },
+    {
+      "description": "No digest pinning for images. With versions looked up on GitHub Releases, Renovate cannot find digests and drops the update. Re-pushed tags are handled on the VM instead: it downloads a tag only the first time (configs/update.sh).",
+      "matchManagers": [
+        "docker-compose"
+      ],
+      "pinDigests": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "minimumReleaseAge": "0 days",
+    "labels": [
+      "security"
+    ]
+  }
+}

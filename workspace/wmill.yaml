@@ -1,0 +1,16 @@
+# Settings for `wmill sync`, run from this directory: https://www.windmill.dev/docs/advanced/cli/sync
+# Careful: `wmill sync push` deletes whatever matches `includes` in the workspace but is missing here. With f/** it also removes the folders and resource types a new workspace comes with. Keep includes as narrow as the folders you actually keep in git.
+defaultTs: bun
+includes:
+  - f/examples/**
+excludes: []
+skipResourceTypes: true
+# Secret values never leave Windmill.
+skipSecrets: true
+includeTriggers: true
+# Binds this directory to the CLI profile for your instance. Replace __CHANGE_ME__ with your domain, then add the profile: wmill workspace add windmill-gce <workspace id> https://<your domain>/
+# Without a matching profile, wmill asks to create one in a terminal, but run by an agent (no terminal) it falls back to the active profile, which may be another instance.
+workspaces:
+  windmill-gce:
+    baseUrl: https://__CHANGE_ME__/
+    gitBranch: main

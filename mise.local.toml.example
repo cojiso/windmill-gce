@@ -1,0 +1,5 @@
+# Copy to mise.local.toml (gitignored) and set your project ID. mise then sets both variables whenever you are in this repository.
+# The first time, mise asks you to trust the file: run `mise trust`.
+[env]
+CLOUDSDK_CORE_PROJECT = "__CHANGE_ME__"
+PULUMI_BACKEND_URL = "gs://{{env.CLOUDSDK_CORE_PROJECT}}-pulumi-state"

@@ -1,0 +1,9 @@
+.DS_Store
+
+# The real .env lives on the VM's data disk and holds secrets.
+.env
+!.env.example
+
+# Per-user environment, such as PULUMI_BACKEND_URL.
+mise.local.toml
+.envrc

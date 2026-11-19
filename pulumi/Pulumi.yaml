@@ -1,0 +1,6 @@
+name: windmill-gce
+description: Windmill on a single GCE VM
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm

@@ -1,0 +1,133 @@
+# Windmill on a single VM, based on the official compose file:
+# https://github.com/windmill-labs/windmill/blob/main/docker-compose.yml
+#
+# Which front door runs is chosen with COMPOSE_PROFILES in .env:
+#   caddy  - Caddy on ports 80/443 with automatic HTTPS (needs a public IP)
+#   tunnel - Cloudflare Tunnel, no inbound ports at all
+#
+# Every image names an exact version, Postgres included. Renovate can only bump a tag like 1.864.1, not latest or 18, and a floating tag would also skip its 5-day delay.
+
+# Fix the project name so it does not follow the directory name. Without it, running compose from a moved or renamed checkout starts a second set of containers next to the first one, and two Postgres containers end up writing to the same data directory.
+name: windmill
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-windmill-env: &windmill-env
+  DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/windmill?sslmode=disable
+
+services:
+  db:
+    # A minor release (18.7 → 18.8) only needs a restart. A new major needs a dump and restore of the whole cluster, done by hand: https://www.windmill.dev/docs/advanced/self_host#upgrade-postgresql-to-18
+    # Changing only the major here would start an empty database, so check-pg-major.sh refuses it.
+    image: postgres:18.7
+    restart: always
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: windmill
+    volumes:
+      # From 18 on, the image keeps the cluster in a versioned subdirectory, so the parent directory is mounted.
+      - ${DATA_DIR:-/mnt/data}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d windmill"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  windmill_server:
+    image: ghcr.io/windmill-labs/windmill:1.864.1
+    restart: always
+    environment:
+      <<: *windmill-env
+      MODE: server
+      BASE_URL: https://${WINDMILL_DOMAIN}
+    # Reachable from the VM itself only: init-admin.sh uses it, and so does an SSH port forward when the front door is not up yet.
+    ports:
+      - 127.0.0.1:8000:8000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ${DATA_DIR:-/mnt/data}/windmill/logs:/tmp/windmill/logs
+    logging: *logging
+
+  windmill_worker:
+    image: ghcr.io/windmill-labs/windmill:1.864.1
+    restart: always
+    # privileged + FAVOR_UNSHARE_PID gives every job its own PID namespace, as in the official file: https://www.windmill.dev/docs/advanced/security_isolation
+    # The host Docker socket is deliberately not mounted. It would give every script root on the VM.
+    privileged: true
+    environment:
+      <<: *windmill-env
+      MODE: worker
+      WORKER_GROUP: default
+      FAVOR_UNSHARE_PID: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ${DATA_DIR:-/mnt/data}/windmill/cache:/tmp/windmill/cache
+      - ${DATA_DIR:-/mnt/data}/windmill/logs:/tmp/windmill/logs
+    # On a 2 GB VM the OOM killer should hit a job, not Postgres. Raise this on a bigger machine.
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    logging: *logging
+
+  # Runs "native" jobs (HTTP requests, SQL, and similar) in-process. They are light, and without this worker they wait in the queue forever.
+  windmill_worker_native:
+    image: ghcr.io/windmill-labs/windmill:1.864.1
+    restart: always
+    environment:
+      <<: *windmill-env
+      MODE: worker
+      WORKER_GROUP: native
+      NATIVE_MODE: "true"
+      SLEEP_QUEUE: "200"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ${DATA_DIR:-/mnt/data}/windmill/logs:/tmp/windmill/logs
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    logging: *logging
+
+  caddy:
+    profiles: [caddy]
+    image: caddy:2.11.9
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    environment:
+      WINDMILL_DOMAIN: ${WINDMILL_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and the ACME account. Losing them means asking Let's Encrypt again, which is rate limited.
+      - ${DATA_DIR:-/mnt/data}/caddy/data:/data
+      - ${DATA_DIR:-/mnt/data}/caddy/config:/config
+    depends_on:
+      - windmill_server
+    logging: *logging
+
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:2026.10.7
+    restart: always
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - windmill_server
+    logging: *logging

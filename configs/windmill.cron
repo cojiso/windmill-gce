@@ -1,0 +1,5 @@
+# Installed as /etc/cron.d/windmill by setup-vm.sh and the nightly update.sh.
+# Times are UTC (the VM clock). The data disk snapshot is at 17:00 UTC (pulumi/snapshot.ts), and unattended-upgrades may reboot at 20:00 UTC.
+0 18 * * * root /opt/windmill/configs/update.sh >> /var/log/windmill-update.log 2>&1
+0 19 * * * root /opt/windmill/configs/backup.sh >> /var/log/windmill-backup.log 2>&1
+*/5 * * * * root /opt/windmill/configs/healthcheck.sh >> /var/log/windmill-health.log 2>&1
